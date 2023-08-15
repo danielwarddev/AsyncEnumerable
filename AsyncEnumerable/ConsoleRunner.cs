@@ -18,9 +18,9 @@ public class ConsoleRunner : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var allPokemon = new List<PokeApiPokemon>();
+        var allPokemon = new List<PokeApiInfoUrl>();
             
-        await foreach (var pokemonPage in _pokemonClient.GetAllPokemon())
+        await foreach (var pokemonPage in _pokemonClient.GetAllPokemonUrls())
         {
             allPokemon.AddRange(pokemonPage);
         }

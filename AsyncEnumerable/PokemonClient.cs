@@ -4,12 +4,12 @@ namespace AsyncEnumerable;
 
 public interface IPokemonClient
 {
-    IAsyncEnumerable<PokeApiPokemon[]> GetAllPokemon();
+    IAsyncEnumerable<PokeApiInfoUrl[]> GetAllPokemonUrls();
 }
 
 public class PokemonClient : IPokemonClient
 {
-    private const int PageSize = 100;
+    public const int PageSize = 100;
     private readonly HttpClient _httpClient;
 
     public PokemonClient(HttpClient httpClient)
@@ -17,18 +17,31 @@ public class PokemonClient : IPokemonClient
         _httpClient = httpClient;
     }
 
-    public async IAsyncEnumerable<PokeApiPokemon[]> GetAllPokemon()
+    public async IAsyncEnumerable<PokeApiInfoUrl[]> GetAllPokemonUrls()
     {
-        var itemsInResponse = 0;
+        await foreach (var pageResults in GetAllPages<PokeApiInfoUrl>("pokemon"))
+        {
+            yield return pageResults;
+        }
+    }
+
+    private async IAsyncEnumerable<T[]> GetAllPages<T>(string endpoint)
+    {
+        int? totalCount = null;
+        int currentCount = 0;
         var currentPage = 0;
 
         do
         {
-            var response = (await _httpClient.GetFromJsonAsync<PokeApiResponse<PokeApiPokemon>>($"pokemon?limit={PageSize}&offset={currentPage * PageSize}"))!;
-            itemsInResponse = response.Count;
-
+            var response = (await _httpClient.GetFromJsonAsync<PokeApiResponse<T>>(
+                $"{endpoint}?limit={PageSize}&offset={currentPage * PageSize}"))!;
+            
+            totalCount = totalCount ?? response.Count;
+            currentCount += response.Results.Length;
+            
             yield return response.Results;
+            currentPage++;
         }
-        while (itemsInResponse == PageSize);
+        while (totalCount > currentCount);
     }
 }
